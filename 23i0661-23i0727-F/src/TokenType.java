@@ -1,0 +1,13 @@
+public enum TokenType {
+
+    INTEGER_LITERAL,
+    FLOAT_LITERAL,
+    IDENTIFIER,
+    SINGLE_LINE_COMMENT,
+    STRING_LITERAL,
+    BOOLEAN_LITERAL,
+    WHITESPACE,
+
+    EOF,
+    ERROR
+}

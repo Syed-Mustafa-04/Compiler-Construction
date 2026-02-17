@@ -14,8 +14,7 @@ import java.io.*;
     private SymbolTable symbolTable;
     private ErrorHandler errorHandler;
 
-    public void setSymbolTable(SymbolTable table) 
-    {
+    public void setSymbolTable(SymbolTable table) {
         this.symbolTable = table;
     }
 
@@ -23,26 +22,18 @@ import java.io.*;
         this.errorHandler = handler;
     }
 
-    private Token createToken(TokenType type) {
+   private Token createToken(TokenType type) {
 
-        String lexeme = yytext();
+    String lexeme = yytext();
 
-        if (type == TokenType.IDENTIFIER && symbolTable != null) {
-            symbolTable.addIdentifier(
-                lexeme,
-                type,
-                yyline + 1,
-                yycolumn + 1
-            );
-        }
-
-        return new Token(
-            type,
-            lexeme,
-            yyline + 1,
-            yycolumn + 1
-        );
-    }
+    return new Token(
+        type,
+        lexeme,
+        yyline + 1,
+        yycolumn + 1
+    );
+}
+   
 
     private Token createErrorToken(
             ErrorHandler.ErrorType type,
@@ -77,13 +68,16 @@ LOWER   = [a-z]
 UPPER   = [A-Z]
 
 IDBODY  = ({LOWER}|{DIGIT}|_)
-DIGITS  = {DIGIT}+  
+DIGITS  = {DIGIT}+
 
-/* Valid identifier: starts with uppercase, followed by lowercase/digits/_, max 31 chars */
-IDENTIFIER_VALID   = {UPPER}{IDBODY}{0,30}
+/* Valid identifier: starts uppercase, then 0–30 lower/digit/_ */
+IDENTIFIER_VALID = {UPPER}({IDBODY}){0,30}
 
-/* Invalid identifier: starts with uppercase, contains uppercase letters after first char, max 31 chars */
-IDENTIFIER_INVALID = {UPPER}({IDBODY}*{UPPER}+{IDBODY}*){0,30}
+/* Too long identifier: 31+ extra chars (32+ total) */
+IDENTIFIER_TOO_LONG = {UPPER}({IDBODY}){31}{IDBODY}*
+
+/* Invalid identifier: uppercase after first char */
+IDENTIFIER_INVALID = {UPPER}({IDBODY}*{UPPER}+{IDBODY}*)+
 
 INTEGER    = [+-]?{DIGITS}
 FLOAT      = [+-]?{DIGITS}\.{DIGIT}{1,6}([eE][+-]?{DIGITS})?
@@ -98,15 +92,15 @@ WHITESPACE = [ \t\r\n]+
    ERROR RULES (FIRST)
    ====================== */
 
-/* Identifier too long (more than 31 chars) */
-{UPPER}{IDBODY}{31}{IDBODY}+ {
+/* Identifier too long */
+{IDENTIFIER_TOO_LONG} {
     return createErrorToken(
         ErrorHandler.ErrorType.IDENTIFIER_TOO_LONG,
         "Identifier exceeds maximum length"
     );
 }
 
-/* Invalid identifier (uppercase inside) - must come before valid identifier */
+/* Invalid identifier */
 {IDENTIFIER_INVALID} {
     return createErrorToken(
         ErrorHandler.ErrorType.INVALID_IDENTIFIER,
@@ -114,7 +108,7 @@ WHITESPACE = [ \t\r\n]+
     );
 }
 
-/* Malformed integer (letters in number) */
+/* Malformed integer */
 [+-]?{DIGITS}[A-Za-z_][A-Za-z0-9_]* {
     return createErrorToken(
         ErrorHandler.ErrorType.MALFORMED_INTEGER,
@@ -122,7 +116,7 @@ WHITESPACE = [ \t\r\n]+
     );
 }
 
-/* Malformed float (too many decimals) */
+/* Malformed float */
 [+-]?{DIGITS}\.{DIGIT}{6}{DIGIT}+ {
     return createErrorToken(
         ErrorHandler.ErrorType.MALFORMED_FLOAT,
@@ -142,37 +136,37 @@ WHITESPACE = [ \t\r\n]+
    NORMAL RULES
    ====================== */
 
-/* 1. Single-line comment */
+/* Comment */
 {COMMENT} {
     return createToken(TokenType.SINGLE_LINE_COMMENT);
 }
 
-/* 2. Whitespace */
+/* Whitespace */
 {WHITESPACE} {
     return createToken(TokenType.WHITESPACE);
 }
 
-/* 3. Boolean literal */
+/* Boolean */
 {BOOLEAN} {
     return createToken(TokenType.BOOLEAN_LITERAL);
 }
 
-/* 4. Floating-point literal */
+/* Float */
 {FLOAT} {
     return createToken(TokenType.FLOAT_LITERAL);
 }
 
-/* 5. Integer literal */
+/* Integer */
 {INTEGER} {
     return createToken(TokenType.INTEGER_LITERAL);
 }
 
-/* 6. Valid identifier */
+/* Valid identifier */
 {IDENTIFIER_VALID} {
     return createToken(TokenType.IDENTIFIER);
 }
 
-/* 7. String literal */
+/* String */
 {STRING} {
     return createToken(TokenType.STRING_LITERAL);
 }
@@ -192,8 +186,7 @@ WHITESPACE = [ \t\r\n]+
    EOF
    ====================== */
 
-<<EOF>> 
-{
+<<EOF>> {
     return new Token(
         TokenType.EOF,
         "EOF",

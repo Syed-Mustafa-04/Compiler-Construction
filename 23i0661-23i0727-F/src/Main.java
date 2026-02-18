@@ -1,8 +1,8 @@
 public class Main {
     public static void main(String[] args) {
-        // Read testInput from test file
-        String testInput = readFile("test\\test_simple.lang");
-
+        // Read testInput from test1.lang file
+        String testInput = readFile("test5.lang");
+        
         ManualScanner scanner = new ManualScanner(testInput);
         java.util.List<Token> tokens = scanner.scan();
 
@@ -11,20 +11,10 @@ public class Main {
             System.out.println(token);
         }
         
-        System.out.println("\n=== Comments Found ===");
-        java.util.List<ManualScanner.CommentInfo> comments = scanner.getComments();
-        if (comments.isEmpty()) {
-            System.out.println("No comments found.");
-        } else {
-            for (ManualScanner.CommentInfo comment : comments) {
-                System.out.println(comment);
-            }
-        }
-        
         System.out.println("\n=== Lexical Errors ===");
         ErrorHandler errorHandler = scanner.getErrorHandler();
-        if (errorHandler.hasErrors()) {
-            errorHandler.printSummary();
+        if (errorHandler.getErrorCount() > 0) {
+            errorHandler.print();
         } else {
             System.out.println("No errors found.");
         }
@@ -35,7 +25,7 @@ public class Main {
         System.out.println("\n=== Symbol Table ===");
         // Use the symbol table populated by the scanner
         SymbolTable symbolTable = scanner.getSymbolTable();
-        symbolTable.printTable();
+        symbolTable.print();
     }
 
     private static String readFile(String filename) {

@@ -1,4 +1,5 @@
 import java.util.*;
+import java.io.*;
 
 public class ManualScanner {
 
@@ -10,8 +11,8 @@ public class ManualScanner {
     private List<Token> tokens = new ArrayList<>();
     private Map<TokenType, Integer> statistics = new HashMap<>();
     
-    private List<CommentInfo> comments = new ArrayList<>();
     private int whitespacesSkipped = 0;
+    private int commentsSkipped = 0;
 
     private SymbolTable symbolTable = new SymbolTable();
     private ErrorHandler errorHandler = new ErrorHandler();
@@ -43,9 +44,12 @@ public class ManualScanner {
             Token token = nextToken();
 
             if (token != null) {
-                tokens.add(token);
-                statistics.put(token.getType(),
-                        statistics.get(token.getType()) + 1);
+                // Don't count comments in the total token count
+                if (!token.getType().toString().equals("SINGLE_LINE_COMMENT")) {
+                    tokens.add(token);
+                    statistics.put(token.getType(),
+                            statistics.get(token.getType()) + 1);
+                }
             }
         }
 
@@ -54,59 +58,41 @@ public class ManualScanner {
 
     private Token nextToken() {
 
-        // Skip whitespaces and comments before tokenizing
-        while (position < input.length()) {
-            char current = peek();
-            
-            // Skip spaces (whitespace)
-            if (current == ' ') {
-                while (position < input.length() && peek() == ' ') {
-                    advance();
-                    whitespacesSkipped++;
-                }
-                continue;
-            }
-            
-            // Skip single-line comments (##)
-            if (current == '#' && position + 1 < input.length() && input.charAt(position + 1) == '#') {
-                int commentStartLine = line;
-                int commentStartColumn = column;
-                int commentStartPos = position;
-                
-                while (position < input.length() && peek() != '\n' && peek() != '\r') {
-                    advance();
-                }
-                
-                String commentText = input.substring(commentStartPos, position);
-                comments.add(new CommentInfo(commentText, commentStartLine, commentStartColumn, "SINGLE_LINE"));
-                continue;
-            }
-            
-            // Skip nested multi-line comments (#* ... *#)
-            if (current == '#' && position + 1 < input.length() && input.charAt(position + 1) == '*') {
-                int commentStartLine = line;
-                int commentStartColumn = column;
-                int commentStartPos = position;
-                
-                skipNestedMultiLineComment();
-                
-                String commentText = input.substring(commentStartPos, position);
-                comments.add(new CommentInfo(commentText, commentStartLine, commentStartColumn, "MULTI_LINE"));
-                continue;
-            }
-            
-            break;
+        int startPos = position;
+        int startLine = line;
+        int startColumn = column;
+
+        // Skip spaces (whitespace) but not comments
+        while (position < input.length() && peek() == ' ') {
+            advance();
+            whitespacesSkipped++;
         }
 
-        // If we've reached EOF after skipping comments/whitespace, return null
+        // If we're at end of file, return null
         if (position >= input.length()) {
             return null;
         }
 
-        // NOW capture the starting position, line, and column AFTER whitespace/comments are skipped
-        int startPos = position;
-        int startLine = line;
-        int startColumn = column;
+        // Check if this is a comment
+        if (peek() == '#') {
+            int commentStartCol = column;
+            StringBuilder commentContent = new StringBuilder();
+            
+            // Read the entire comment line
+            while (position < input.length() && peek() != '\n' && peek() != '\r') {
+                commentContent.append(peek());
+                advance();
+            }
+            commentsSkipped++;
+            
+            // Create a comment token but don't count it in statistics
+            return new Token(TokenType.SINGLE_LINE_COMMENT, commentContent.toString(), startLine, commentStartCol);
+        }
+
+        // Update start position after skipping whitespace
+        startPos = position;
+        startLine = line;
+        startColumn = column;
 
         // Quick path: handle lowercase-starting keywords or error
         if (position < input.length() && isLowerCase(peek()) && peek() != 't' && peek() != 'f') {
@@ -119,11 +105,11 @@ public class ManualScanner {
             }
             String kw = sb.toString();
             if (isKeyword(kw)) {
-                return new Token(TokenType.IDENTIFIER, kw, kwLine, kwCol);
+                return new Token(TokenType.KEYWORD, kw, kwLine, kwCol);
             } else {
                 // Lowercase identifiers are not allowed - this is an error
                 String errorMsg = "Identifier must start with uppercase letter";
-                errorHandler.reportError(ErrorHandler.ErrorType.INVALID_IDENTIFIER, kwLine, kwCol, kw, errorMsg);
+                errorHandler.add(kw, errorMsg, kwLine, kwCol);
                 return null;
             }
         }
@@ -161,11 +147,13 @@ public class ManualScanner {
                     errorMsg = "Unterminated string literal";
                 } else if (state == 11) {
                     errorMsg = "Invalid escape sequence in string";
+                } else if (peek() == '\n') {
+                    errorMsg = "Newline not allowed in string literal";
                 }
             }
             
             // Log the error
-            errorHandler.reportError(ErrorHandler.ErrorType.INVALID_CHARACTER, startLine, startColumn, errorLexeme, errorMsg);
+            errorHandler.add(errorLexeme, errorMsg, startLine, startColumn);
             
             if (position < input.length()) {
                 advance();
@@ -193,7 +181,7 @@ public class ManualScanner {
                 }
                 String fullLexeme = input.substring(errorStart, errorEnd);
                 String errorMsg = "Mixed-case identifier not allowed";
-                errorHandler.reportError(ErrorHandler.ErrorType.INVALID_IDENTIFIER, startLine, startColumn, fullLexeme, errorMsg);
+                errorHandler.add(fullLexeme, errorMsg, startLine, startColumn);
                 position = errorEnd;
                 return null;
             }
@@ -224,38 +212,17 @@ public class ManualScanner {
                 if (c == 'r') return 17;               // r -> q17
                 break;
 
-            case 5: // Inside string (q5) - supports multi-line strings
+            case 5: // Inside string (q5)
                 if (c == '"') return 16;               // closing " -> q16 (final string state)
                 if (c == '\\') return 11;              // \ -> q11 (escape sequence)
-                // Allow newlines in multi-line strings
-                return 5;                              // any other valid char (including \n) -> stay q5
+                if (c == '\n') return -1;              // actual newline not allowed
+                return 5;                              // any other valid char -> stay q5
                 
             case 11: // After backslash in string (q11) - escape sequence
-                // Standard escapes: \", \\, \n, \t, \r
                 if (c == '"' || c == '\\' || c == 'n' || c == 't' || c == 'r') {
                     return 5;                          // valid escape -> back to q5
                 }
-                // Unicode escape: backslash u followed by 4 hex digits
-                if (c == 'u') {
-                    return 12;                         // u -> q12 (start of unicode sequence)
-                }
                 return -1;                             // invalid escape sequence
-            
-            case 12: // After backslash-u (q12) - first hex digit of unicode
-                if (isHexDigit(c)) return 13;          // hex digit -> q13
-                return -1;                             // not a hex digit -> error
-            
-            case 13: // After backslash-u and first hex (q13) - second hex digit
-                if (isHexDigit(c)) return 14;          // hex digit -> q14
-                return -1;                             // not a hex digit -> error
-            
-            case 14: // After backslash-u and two hex (q14) - third hex digit
-                if (isHexDigit(c)) return 15;          // hex digit -> q15
-                return -1;                             // not a hex digit -> error
-            
-            case 15: // After backslash-u and three hex (q15) - fourth hex digit
-                if (isHexDigit(c)) return 5;           // hex digit -> back to q5 (string continues)
-                return -1;                             // not a hex digit -> error
 
             case 7: // After sign (q7)
                 if (isDigit(c)) return 2;              // D -> q2
@@ -333,43 +300,6 @@ public class ManualScanner {
         return -1;
     }
 
-    /**
-     * Handles nested multi-line comments with syntax: #* ... *#
-     * Supports nesting: #* outer comment #* nested *# outer continues *#
-     * Tracks nesting depth - only closes when all nested levels close
-     */
-    private void skipNestedMultiLineComment() {
-        int nestingDepth = 0;
-
-        // Skip the opening #*
-        advance(); // skip #
-        advance(); // skip *
-        nestingDepth = 1;
-
-        while (position < input.length() && nestingDepth > 0) {
-            char current = peek();
-
-            // Check for nested comment opening: #*
-            if (current == '#' && position + 1 < input.length() && input.charAt(position + 1) == '*') {
-                nestingDepth++;
-                advance(); // skip #
-                advance(); // skip *
-                continue;
-            }
-
-            // Check for comment closing: *#
-            if (current == '*' && position + 1 < input.length() && input.charAt(position + 1) == '#') {
-                nestingDepth--;
-                advance(); // skip *
-                advance(); // skip #
-                continue;
-            }
-
-            // Handle regular characters
-            advance();
-        }
-    }
-
     // Helper methods for character classification
     private boolean isDigit(char c) {
         return Character.isDigit(c);
@@ -389,12 +319,6 @@ public class ManualScanner {
 
     private boolean isExponent(char c) {
         return c == 'e' || c == 'E';
-    }
-
-    private boolean isHexDigit(char c) {
-        return Character.isDigit(c) || 
-               (c >= 'a' && c <= 'f') || 
-               (c >= 'A' && c <= 'F');
     }
 
     private boolean isAccepting(int state) {
@@ -431,7 +355,7 @@ public class ManualScanner {
                     }
                     String malformedLexeme = input.substring(position - lexeme.length(), errorEnd);
                     String errorMsg = "Malformed integer: digit followed by letter";
-                    errorHandler.reportError(ErrorHandler.ErrorType.MALFORMED_INTEGER, line, column, malformedLexeme, errorMsg);
+                    errorHandler.add(malformedLexeme, errorMsg, line, column);
                     // Advance position to skip the malformed part
                     while (position < errorEnd) {
                         advance();
@@ -444,28 +368,28 @@ public class ManualScanner {
                 // Check identifier length (max 31 characters)
                 if (lexeme.length() > 31) {
                     String errorMsg = "Identifier exceeds maximum length of 31 characters";
-                    errorHandler.reportError(ErrorHandler.ErrorType.IDENTIFIER_TOO_LONG, line, column, lexeme, errorMsg);
+                    errorHandler.add(lexeme, errorMsg, line, column);
                     return null;
                 }
                 
                 if (isKeyword(lexeme))
-                    return new Token(TokenType.IDENTIFIER, lexeme, line, column);
+                    return new Token(TokenType.KEYWORD, lexeme, line, column);
 
-                symbolTable.addIdentifier(lexeme, TokenType.IDENTIFIER, line, column);
+                symbolTable.add(lexeme, "identifier", line);
                 return new Token(TokenType.IDENTIFIER, lexeme, line, column);
 
             case 10: // IDENTIFIER (uppercase + lowercase/digit/underscore)
                 // Check identifier length (max 31 characters)
                 if (lexeme.length() > 31) {
                     String errorMsg = "Identifier exceeds maximum length of 31 characters";
-                    errorHandler.reportError(ErrorHandler.ErrorType.IDENTIFIER_TOO_LONG, line, column, lexeme, errorMsg);
+                    errorHandler.add(lexeme, errorMsg, line, column);
                     return null;
                 }
                 
                 if (isKeyword(lexeme))
-                    return new Token(TokenType.IDENTIFIER, lexeme, line, column);
+                    return new Token(TokenType.KEYWORD, lexeme, line, column);
 
-                symbolTable.addIdentifier(lexeme, TokenType.IDENTIFIER, line, column);
+                symbolTable.add(lexeme, "identifier", line);
                 return new Token(TokenType.IDENTIFIER, lexeme, line, column);
 
             case 16: // STRING_LITERAL
@@ -491,7 +415,7 @@ public class ManualScanner {
                     
                     if (decimalDigits > 6) {
                         String errorMsg = "Float literal exceeds maximum of 6 digits after decimal point";
-                        errorHandler.reportError(ErrorHandler.ErrorType.MALFORMED_FLOAT, line, column, lexeme, errorMsg);
+                        errorHandler.add(lexeme, errorMsg, line, column);
                         return null;
                     }
                 }
@@ -528,14 +452,29 @@ public class ManualScanner {
 
     public void printStatistics() {
         System.out.println("Total Tokens: " + tokens.size());
-
-        for (TokenType type : statistics.keySet()) {
-            if (statistics.get(type) > 0)
-                System.out.println(type + ": " + statistics.get(type));
-        }
         
+        System.out.println("\n=== Token Type Counts ===");
+        
+        // Print counts for each token type
+        int keywordCount = statistics.getOrDefault(TokenType.KEYWORD, 0);
+        int identifierCount = statistics.getOrDefault(TokenType.IDENTIFIER, 0);
+        int integerCount = statistics.getOrDefault(TokenType.INTEGER_LITERAL, 0);
+        int floatCount = statistics.getOrDefault(TokenType.FLOAT_LITERAL, 0);
+        int stringCount = statistics.getOrDefault(TokenType.STRING_LITERAL, 0);
+        int booleanCount = statistics.getOrDefault(TokenType.BOOLEAN_LITERAL, 0);
+        int commentCount = statistics.getOrDefault(TokenType.SINGLE_LINE_COMMENT, 0);
+        
+        if (keywordCount > 0) System.out.println("KEYWORD: " + keywordCount);
+        if (identifierCount > 0) System.out.println("IDENTIFIER: " + identifierCount);
+        if (integerCount > 0) System.out.println("INTEGER_LITERAL: " + integerCount);
+        if (floatCount > 0) System.out.println("FLOAT_LITERAL: " + floatCount);
+        if (stringCount > 0) System.out.println("STRING_LITERAL: " + stringCount);
+        if (booleanCount > 0) System.out.println("BOOLEAN_LITERAL: " + booleanCount);
+        if (commentCount > 0) System.out.println("SINGLE_LINE_COMMENT: " + commentCount);
+        
+        System.out.println("\n=== Skipped Items ===");
         System.out.println("Whitespaces Skipped: " + whitespacesSkipped);
-        System.out.println("Total Comments Found: " + comments.size());
+        System.out.println("Comments Skipped: " + commentsSkipped);
     }
 
     // Expose symbol table so callers (e.g. Main) can inspect what the scanner recorded
@@ -546,48 +485,5 @@ public class ManualScanner {
     // Expose error handler so callers can inspect lexical errors
     public ErrorHandler getErrorHandler() {
         return errorHandler;
-    }
-
-    // Expose comments so callers can display them
-    public List<CommentInfo> getComments() {
-        return comments;
-    }
-
-    /**
-     * Inner class to represent a comment with its location
-     */
-    public static class CommentInfo {
-        private String text;
-        private int line;
-        private int column;
-        private String type; // "SINGLE_LINE" or "MULTI_LINE"
-
-        public CommentInfo(String text, int line, int column, String type) {
-            this.text = text;
-            this.line = line;
-            this.column = column;
-            this.type = type;
-        }
-
-        public String getText() {
-            return text;
-        }
-
-        public int getLine() {
-            return line;
-        }
-
-        public int getColumn() {
-            return column;
-        }
-
-        public String getType() {
-            return type;
-        }
-
-        @Override
-        public String toString() {
-            return "<" + type + ", \"" + text + "\", Line: " + line + ", Col: " + column + ">";
-        }
     }
 }

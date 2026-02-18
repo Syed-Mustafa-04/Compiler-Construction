@@ -14,6 +14,17 @@ import java.io.*;
     private SymbolTable symbolTable;
     private ErrorHandler errorHandler;
 
+    /* Comment counter */
+    private int commentCount = 0;
+
+    public int getCommentCount() {
+        return commentCount;
+    }
+
+public int getLineCount() {
+    return yyline + 1;
+}
+
     public void setSymbolTable(SymbolTable table) {
         this.symbolTable = table;
     }
@@ -22,18 +33,17 @@ import java.io.*;
         this.errorHandler = handler;
     }
 
-   private Token createToken(TokenType type) {
+    private Token createToken(TokenType type) {
 
-    String lexeme = yytext();
+        String lexeme = yytext();
 
-    return new Token(
-        type,
-        lexeme,
-        yyline + 1,
-        yycolumn + 1
-    );
-}
-   
+        return new Token(
+            type,
+            lexeme,
+            yyline + 1,
+            yycolumn + 1
+        );
+    }
 
     private Token createErrorToken(
             ErrorHandler.ErrorType type,
@@ -59,9 +69,7 @@ import java.io.*;
     }
 %}
 
-/* ======================
-   MACROS
-   ====================== */
+/* ---------- MACROS ---------- */
 
 DIGIT   = [0-9]
 LOWER   = [a-z]
@@ -70,80 +78,67 @@ UPPER   = [A-Z]
 IDBODY  = ({LOWER}|{DIGIT}|_)
 DIGITS  = {DIGIT}+
 
-/* Valid identifier: starts uppercase, then 0–30 lower/digit/_ */
 IDENTIFIER_VALID = {UPPER}({IDBODY}){0,30}
-
-/* Too long identifier: 31+ extra chars (32+ total) */
 IDENTIFIER_TOO_LONG = {UPPER}({IDBODY}){31}{IDBODY}*
-
-/* Invalid identifier: uppercase after first char */
 IDENTIFIER_INVALID = {UPPER}({IDBODY}*{UPPER}+{IDBODY}*)+
 
 INTEGER    = [+-]?{DIGITS}
 FLOAT      = [+-]?{DIGITS}\.{DIGIT}{1,6}([eE][+-]?{DIGITS})?
 BOOLEAN    = (true|false)
+
 STRING     = \"([^\"\\\n]|\\[\"\\ntr])*\" 
 COMMENT    = ##[^\n]* 
 WHITESPACE = [ \t\r\n]+
 
 %%
 
-/* ======================
-   ERROR RULES (FIRST)
-   ====================== */
+/* ---------- ERROR RULES ---------- */
 
-/* Identifier too long */
 {IDENTIFIER_TOO_LONG} {
     return createErrorToken(
         ErrorHandler.ErrorType.IDENTIFIER_TOO_LONG,
-        "Identifier exceeds maximum length"
+        "Identifier too long"
     );
 }
 
-/* Invalid identifier */
 {IDENTIFIER_INVALID} {
     return createErrorToken(
         ErrorHandler.ErrorType.INVALID_IDENTIFIER,
-        "Identifier contains uppercase letters after the first character"
+        "Invalid identifier"
     );
 }
 
-/* Malformed integer */
 [+-]?{DIGITS}[A-Za-z_][A-Za-z0-9_]* {
     return createErrorToken(
         ErrorHandler.ErrorType.MALFORMED_INTEGER,
-        "Malformed integer literal"
+        "Malformed integer"
     );
 }
 
-/* Malformed float */
 [+-]?{DIGITS}\.{DIGIT}{6}{DIGIT}+ {
     return createErrorToken(
         ErrorHandler.ErrorType.MALFORMED_FLOAT,
-        "Too many decimal places"
+        "Too many decimals"
     );
 }
 
-/* Unterminated string */
 \"([^\"\\\n]|\\.)* {
     return createErrorToken(
         ErrorHandler.ErrorType.MALFORMED_STRING,
-        "Unterminated string literal"
+        "Unterminated string"
     );
 }
 
-/* ======================
-   NORMAL RULES
-   ====================== */
+/* ---------- NORMAL RULES ---------- */
 
-/* Comment */
+/* Comment (SKIP + COUNT) */
 {COMMENT} {
-    return createToken(TokenType.SINGLE_LINE_COMMENT);
+    commentCount++;
 }
 
-/* Whitespace */
+/* Whitespace (SKIP) */
 {WHITESPACE} {
-    return createToken(TokenType.WHITESPACE);
+    /* skip */
 }
 
 /* Boolean */
@@ -161,7 +156,7 @@ WHITESPACE = [ \t\r\n]+
     return createToken(TokenType.INTEGER_LITERAL);
 }
 
-/* Valid identifier */
+/* Identifier */
 {IDENTIFIER_VALID} {
     return createToken(TokenType.IDENTIFIER);
 }
@@ -171,10 +166,7 @@ WHITESPACE = [ \t\r\n]+
     return createToken(TokenType.STRING_LITERAL);
 }
 
-/* ======================
-   DEFAULT ERROR
-   ====================== */
-
+/* Invalid character */
 . {
     return createErrorToken(
         ErrorHandler.ErrorType.INVALID_CHARACTER,
@@ -182,11 +174,9 @@ WHITESPACE = [ \t\r\n]+
     );
 }
 
-/* ======================
-   EOF
-   ====================== */
-
+/* EOF */
 <<EOF>> {
+
     return new Token(
         TokenType.EOF,
         "EOF",

@@ -1,0 +1,55 @@
+========== LL(1) Parsing Trace ==========
+Input: ( id + ( id * ( id + id ) ) ) $
+Start Symbol: Expr
+========================================
+
+Step | Stack                          | Input         | Action
+--------------------------------------------------------------------------------
+   1 | $ Expr                         | ( id +        | Expand Expr -> Term ExprPrime
+2    | $ ExprPrime Term               | ( id +        | Expand Term -> Factor TermPrime
+3    | $ ExprPrime TermPrime Factor   | ( id +        | Expand Factor -> ( Expr )
+4    | $ ExprPrime TermPrime ) Expr ( | ( id +        | Match '('
+5    | $ ExprPrime TermPrime ) Expr   | id + (        | Expand Expr -> Term ExprPrime
+6    | $ ExprPrime TermPrime ) Exp... | id + (        | Expand Term -> Factor TermPrime
+7    | $ ExprPrime TermPrime ) Exp... | id + (        | Expand Factor -> id
+8    | $ ExprPrime TermPrime ) Exp... | id + (        | Match 'id'
+9    | $ ExprPrime TermPrime ) Exp... | + ( id        | Expand TermPrime -> epsilon
+10   | $ ExprPrime TermPrime ) Exp... | + ( id        | Expand ExprPrime -> + Term ExprPrime
+11   | $ ExprPrime TermPrime ) Exp... | + ( id        | Match '+'
+12   | $ ExprPrime TermPrime ) Exp... | ( id *        | Expand Term -> Factor TermPrime
+13   | $ ExprPrime TermPrime ) Exp... | ( id *        | Expand Factor -> ( Expr )
+14   | $ ExprPrime TermPrime ) Exp... | ( id *        | Match '('
+15   | $ ExprPrime TermPrime ) Exp... | id * (        | Expand Expr -> Term ExprPrime
+16   | $ ExprPrime TermPrime ) Exp... | id * (        | Expand Term -> Factor TermPrime
+17   | $ ExprPrime TermPrime ) Exp... | id * (        | Expand Factor -> id
+18   | $ ExprPrime TermPrime ) Exp... | id * (        | Match 'id'
+19   | $ ExprPrime TermPrime ) Exp... | * ( id        | Expand TermPrime -> * Factor TermPrime
+20   | $ ExprPrime TermPrime ) Exp... | * ( id        | Match '*'
+21   | $ ExprPrime TermPrime ) Exp... | ( id +        | Expand Factor -> ( Expr )
+22   | $ ExprPrime TermPrime ) Exp... | ( id +        | Match '('
+23   | $ ExprPrime TermPrime ) Exp... | id + id       | Expand Expr -> Term ExprPrime
+24   | $ ExprPrime TermPrime ) Exp... | id + id       | Expand Term -> Factor TermPrime
+25   | $ ExprPrime TermPrime ) Exp... | id + id       | Expand Factor -> id
+26   | $ ExprPrime TermPrime ) Exp... | id + id       | Match 'id'
+27   | $ ExprPrime TermPrime ) Exp... | + id )        | Expand TermPrime -> epsilon
+28   | $ ExprPrime TermPrime ) Exp... | + id )        | Expand ExprPrime -> + Term ExprPrime
+29   | $ ExprPrime TermPrime ) Exp... | + id )        | Match '+'
+30   | $ ExprPrime TermPrime ) Exp... | id ) )        | Expand Term -> Factor TermPrime
+31   | $ ExprPrime TermPrime ) Exp... | id ) )        | Expand Factor -> id
+32   | $ ExprPrime TermPrime ) Exp... | id ) )        | Match 'id'
+33   | $ ExprPrime TermPrime ) Exp... | ) ) )         | Expand TermPrime -> epsilon
+34   | $ ExprPrime TermPrime ) Exp... | ) ) )         | Expand ExprPrime -> epsilon
+35   | $ ExprPrime TermPrime ) Exp... | ) ) )         | Match ')'
+36   | $ ExprPrime TermPrime ) Exp... | ) ) $         | Expand TermPrime -> epsilon
+37   | $ ExprPrime TermPrime ) Exp... | ) ) $         | Expand ExprPrime -> epsilon
+38   | $ ExprPrime TermPrime ) Exp... | ) ) $         | Match ')'
+39   | $ ExprPrime TermPrime ) Exp... | ) $           | Expand TermPrime -> epsilon
+40   | $ ExprPrime TermPrime ) Exp... | ) $           | Expand ExprPrime -> epsilon
+41   | $ ExprPrime TermPrime )        | ) $           | Match ')'
+42   | $ ExprPrime TermPrime          | $             | Expand TermPrime -> epsilon
+43   | $ ExprPrime                    | $             | Expand ExprPrime -> epsilon
+44   | $                              | $             | Accept
+
+========================================
+RESULT: ACCEPTED
+========================================

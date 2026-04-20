@@ -1,0 +1,18 @@
+
+  Non-Terminal   | (                         | )                         | *                         | +                         | id                        | $                         
+  ---------------+---------------------------+---------------------------+---------------------------+---------------------------+---------------------------+---------------------------
+  Expr           | Expr -> Term ExprPrime    | error                     | error                     | error                     | Expr -> Term ExprPrime    | error                     
+  Term           | Term -> Factor TermP...   | error                     | error                     | error                     | Term -> Factor TermP...   | error                     
+  Factor         | Factor -> ( Expr )        | error                     | error                     | error                     | Factor -> id              | error                     
+  ExprPrime      | error                     | ExprPrime -> epsilon      | error                     | ExprPrime -> + Term ...   | error                     | ExprPrime -> epsilon      
+  TermPrime      | error                     | TermPrime -> epsilon      | TermPrime -> * Facto...   | TermPrime -> epsilon      | error                     | TermPrime -> epsilon      
+  ----------------------------------------------------------------------------
+
+  Summary:
+    Total Non-Terminals: 5
+    Total Terminals + $: 6
+    Table Size: 5 × 6
+    Non-empty Entries: 13
+    Conflicts: 0
+    LL(1) Status: YES
+================================================================================

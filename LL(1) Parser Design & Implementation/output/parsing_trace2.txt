@@ -1,0 +1,32 @@
+========== LL(1) Parsing Trace ==========
+Input: ( id + id $
+Start Symbol: Expr
+========================================
+
+Step | Stack                          | Input         | Action
+--------------------------------------------------------------------------------
+   1 | $ Expr                         | ( id +        | Expand Expr -> Term ExprPrime
+2    | $ ExprPrime Term               | ( id +        | Expand Term -> Factor TermPrime
+3    | $ ExprPrime TermPrime Factor   | ( id +        | Expand Factor -> ( Expr )
+4    | $ ExprPrime TermPrime ) Expr ( | ( id +        | Match '('
+5    | $ ExprPrime TermPrime ) Expr   | id + id       | Expand Expr -> Term ExprPrime
+6    | $ ExprPrime TermPrime ) Exp... | id + id       | Expand Term -> Factor TermPrime
+7    | $ ExprPrime TermPrime ) Exp... | id + id       | Expand Factor -> id
+8    | $ ExprPrime TermPrime ) Exp... | id + id       | Match 'id'
+9    | $ ExprPrime TermPrime ) Exp... | + id $        | Expand TermPrime -> epsilon
+10   | $ ExprPrime TermPrime ) Exp... | + id $        | Expand ExprPrime -> + Term ExprPrime
+11   | $ ExprPrime TermPrime ) Exp... | + id $        | Match '+'
+12   | $ ExprPrime TermPrime ) Exp... | id $          | Expand Term -> Factor TermPrime
+13   | $ ExprPrime TermPrime ) Exp... | id $          | Expand Factor -> id
+14   | $ ExprPrime TermPrime ) Exp... | id $          | Match 'id'
+15   | $ ExprPrime TermPrime ) Exp... | $             | Expand TermPrime -> epsilon
+16   | $ ExprPrime TermPrime ) Exp... | $             | Expand ExprPrime -> epsilon
+17   | $ ExprPrime TermPrime )        | $             | ERROR: Expected ')' but found '$'
+   [Recovery] Skipping '$'
+18   | $ ExprPrime TermPrime          |               | Expand TermPrime -> epsilon
+19   | $ ExprPrime                    |               | Expand ExprPrime -> epsilon
+20   | $                              |               | Accept
+
+========================================
+RESULT: ACCEPTED
+========================================

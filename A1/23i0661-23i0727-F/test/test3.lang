@@ -1,0 +1,15 @@
+"Hello\nWorld"
+"Tab\tSpace"
+"Quote: \"Test\""
+"Backslash: \\"
+"Carriage\rReturn"
+
+"Mix:\n\t\\\"End\""
+
+true
+false
+
+123
+45.67
+
+## String test done

@@ -1,0 +1,19 @@
+hello          ## invalid (lowercase start if rule requires uppercase)
+2Value         ## invalid (starts with digit)
+
+12.34.56       ## invalid float
+1.23456789     ## too many decimals
+
+"Unclosed string
+
+"Bad\qEscape"
+
+True           ## invalid boolean (case sensitive)
+FALSE
+
+@bad
+$wrong
+
+## Valid comment
+
+"Another bad string

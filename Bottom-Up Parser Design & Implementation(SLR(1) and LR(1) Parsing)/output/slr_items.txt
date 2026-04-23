@@ -1,0 +1,40 @@
+LR(0) Items:
+I0:
+Expr -> • Expr + Term 
+Expr -> • Term 
+Expr' -> • Expr 
+Factor -> • id 
+Term -> • Factor 
+Term -> • Term * Factor 
+
+I1:
+Expr -> Expr • + Term 
+Expr' -> Expr •
+
+I2:
+Term -> Factor •
+
+I3:
+Expr -> Expr + • Term 
+Factor -> • id 
+Term -> • Factor 
+Term -> • Term * Factor 
+
+I4:
+Expr -> Term •
+Term -> Term • * Factor 
+
+I5:
+Expr -> Expr + Term •
+Term -> Term • * Factor 
+
+I6:
+Factor -> id •
+
+I7:
+Factor -> • id 
+Term -> Term * • Factor 
+
+I8:
+Term -> Term * Factor •
+

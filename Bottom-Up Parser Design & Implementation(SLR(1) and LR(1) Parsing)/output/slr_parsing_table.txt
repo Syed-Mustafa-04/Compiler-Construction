@@ -1,0 +1,11 @@
+SLR(1) Parsing Table:
+State         *         +        id    $      Expr     Expr'    Factor      Term
+    0                            s6              1                   2         4
+    1                  s3            acc                                        
+    2        r5        r5                                                       
+    3                            s6                                  2         5
+    4        s7        r1                                                       
+    5        s7        r0                                                       
+    6        r3        r3                                                       
+    7                            s6                                  8          
+    8        r4        r4                                                       

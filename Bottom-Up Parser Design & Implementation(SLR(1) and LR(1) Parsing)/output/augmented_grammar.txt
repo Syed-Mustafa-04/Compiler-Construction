@@ -1,0 +1,5 @@
+Augmented Grammar:
+Expr -> Expr + Term | Term
+Expr' -> Expr
+Factor -> id
+Term -> Term * Factor | Factor

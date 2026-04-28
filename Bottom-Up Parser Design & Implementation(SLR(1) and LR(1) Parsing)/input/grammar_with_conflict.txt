@@ -1,2 +1,0 @@
-Stmt -> if Expr then Stmt | if Expr then Stmt else Stmt | other
-Expr -> id

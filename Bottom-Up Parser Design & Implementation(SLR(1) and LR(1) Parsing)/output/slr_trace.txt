@@ -1,3 +1,0 @@
-Parsing Trace:
- Step          Stack               Input         Action
-    1             0                   $           Error

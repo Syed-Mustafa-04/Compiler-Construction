@@ -1,0 +1,209 @@
+# HOW TO RUN THE CODE - Quick Reference Guide
+
+## Step 1: Compile the Project
+```bash
+cd d:\23i0727-23i0661-F
+make clean
+make
+```
+
+After successful compilation, you'll have `slr_parser.exe` in the root directory.
+
+## Step 2: Run the Parser
+
+### Basic Syntax
+```bash
+.\slr_parser.exe <grammar_file> <input_file>
+```
+
+### Example Test Cases
+
+**Test 1: Simple Expression (Grammar 1) - SHOULD PASS ✅**
+```bash
+.\slr_parser.exe input\grammar1.txt input\input_valid.txt
+```
+Expected Output:
+```
+=== SLR(1) Parser ===
+Parsing successful!
+Input accepted by SLR(1)!
+
+=== LR(1) Parser ===
+Input accepted by LR(1)!
+```
+
+**Test 2: Expression with Parentheses (Grammar 2) - SHOULD PASS ✅**
+```bash
+.\slr_parser.exe input\grammar2.txt input\input_valid.txt
+```
+
+**Test 3: Conflict Example (Grammar 3) - SHOWS SLR(1) vs LR(1) ✅**
+```bash
+.\slr_parser.exe input\grammar3.txt input\input_valid.txt
+```
+Expected Output:
+```
+=== SLR(1) Parser ===
+Error: No action for state 5 and symbol +
+Input rejected by SLR(1)!         ← SLR(1) cannot parse this!
+
+=== LR(1) Parser ===
+Input accepted by LR(1)!          ← LR(1) handles it correctly!
+```
+
+**Test 4: Invalid Input - SHOULD REJECT ✅**
+```bash
+.\slr_parser.exe input\grammar1.txt input\input_invalid.txt
+```
+
+## Step 3: View Generated Output Files
+
+All output files are automatically created in the `output/` directory:
+
+### Check Parse Tree
+```bash
+type output\parse_trees.txt
+```
+
+### Check SLR(1) Parsing Table
+```bash
+type output\slr_parsing_table.txt
+```
+
+### Check LR(1) vs SLR(1) Comparison
+```bash
+type output\comparison.txt
+```
+
+### View All Outputs
+```bash
+dir output\
+```
+
+## Output Files Generated
+
+| File | Purpose |
+|------|---------|
+| `augmented_grammar.txt` | Shows the augmented grammar with S' |
+| `slr_items.txt` | LR(0) item sets for SLR(1) |
+| `slr_parsing_table.txt` | Complete SLR(1) ACTION and GOTO table |
+| `slr_trace.txt` | Step-by-step SLR(1) parsing trace |
+| `lr1_items.txt` | LR(1) items with lookaheads |
+| `lr1_parsing_table.txt` | Complete LR(1) parsing table |
+| `lr1_trace.txt` | Step-by-step LR(1) parsing trace |
+| `parse_trees.txt` | **Parse tree** (newly implemented!) ✅ |
+| `comparison.txt` | SLR(1) vs LR(1) comparison analysis |
+
+## Parse Tree Example
+
+For input `id + id * id` with grammar1, the parse tree shows:
+```
+Parse Tree:
+Expr -> Expr + Term
+  Expr -> Term
+    Term -> Factor
+      Factor -> id
+        id
+  +
+  Term -> Term * Factor
+    Term -> Factor
+      Factor -> id
+        id
+    *
+    Factor -> id
+      id
+```
+
+## Features Implemented
+
+✅ **Grammar Processing**
+- Read CFG from file
+- Augment with new start symbol (S')
+- Compute FIRST and FOLLOW sets
+
+✅ **SLR(1) Parser** (Section 3)
+- Build LR(0) items with CLOSURE and GOTO
+- Construct canonical collection
+- Generate SLR(1) parsing table
+- Perform shift-reduce parsing
+- Generate detailed parsing traces
+
+✅ **LR(1) Parser** (Section 4)
+- Build LR(1) items with lookaheads
+- Construct LR(1) canonical collection
+- Generate LR(1) parsing table
+- Handle shift/reduce conflicts better than SLR(1)
+
+✅ **Parse Tree Generation** (Section 5 - Task 3.3)
+- Build parse trees during parsing
+- Save to output file
+- Show production rules and terminals
+
+✅ **Comparison & Analysis** (Section 5 - Tasks 3.1 & 3.2)
+- Count states: SLR(1) vs LR(1)
+- Explain differences in reduction strategy
+- Show grammar3 as conflict example
+
+## Compiler Warnings Fixed
+
+✅ Fixed sign comparison warning
+✅ Fixed unused parameter warning
+✅ All code compiles cleanly with `-Wall -Wextra`
+
+## Command Shortcut
+
+Create a batch file `run.bat` for quick testing:
+```batch
+@echo off
+cd d:\23i0727-23i0661-F
+if "%1"=="" (
+    echo Usage: run.bat [1|2|3|conflict]
+    echo Example: run.bat 1
+) else if "%1"=="1" (
+    .\slr_parser.exe input\grammar1.txt input\input_valid.txt
+) else if "%1"=="2" (
+    .\slr_parser.exe input\grammar2.txt input\input_valid.txt
+) else if "%1"=="3" (
+    .\slr_parser.exe input\grammar3.txt input\input_valid.txt
+) else if "%1"=="conflict" (
+    .\slr_parser.exe input\grammar_with_conflict.txt input\input_valid.txt
+)
+```
+
+Then run as: `run.bat 1` or `run.bat 3`
+
+## Troubleshooting
+
+| Problem | Solution |
+|---------|----------|
+| `make: command not found` | Install MinGW or use `gcc -std=c++11 -Wall -Wextra -o slr_parser src/*.cpp` |
+| `slr_parser.exe not found` | Run `make` first |
+| Empty output files | Test with valid input first |
+| Parse tree empty | Only generated for successfully parsed inputs |
+
+## Success Indicators ✅
+
+You should see:
+- 0 compilation errors
+- 0 compilation warnings
+- Successful test output for grammars 1 & 2
+- SLR(1) conflict for grammar 3
+- Parse trees in `output/parse_trees.txt`
+- All output files in `output/` directory
+
+## Assignment Completion Status
+
+| Requirement | Status |
+|-------------|--------|
+| Part 1: SLR(1) | ✅ Complete |
+| Part 2: LR(1) | ✅ Complete |
+| Part 3.1: Conflict Analysis | ✅ Complete (grammar3) |
+| Part 3.2: Performance Comparison | ✅ Complete |
+| Part 3.3: Parse Tree Generation | ✅ Complete |
+| Compiler Warnings | ✅ Fixed |
+| Documentation | ✅ Complete |
+| Test Cases | ✅ All working |
+
+---
+
+**Your project is now 100% complete and fully functional! 🎉**

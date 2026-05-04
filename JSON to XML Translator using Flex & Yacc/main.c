@@ -94,8 +94,14 @@ int main(int argc, char *argv[]) {
     /* parse stdin → builds AST */
     yyparse();
 
-    /* optional: print AST to stderr for debugging (bonus) */
-    /* print_ast(root, 0); */
+    /* write AST to a file for post-run inspection */
+    FILE *ast_file = fopen("ast.txt", "w");
+    if (ast_file) {
+        print_ast(root, 0, ast_file);
+        fclose(ast_file);
+    } else {
+        fprintf(stderr, "Failed to open ast.txt for writing\n");
+    }
 
     /* generate XML */
     printf("<root>\n");

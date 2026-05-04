@@ -43,13 +43,13 @@ static const char *node_type_name(NodeType t) {
     }
 }
 
-void print_ast(ASTNode *node, int depth) {
-    if (!node) return;
-    for (int i = 0; i < depth; i++) printf("  ");
-    printf("[%s]", node_type_name(node->type));
-    if (node->key)     printf(" key=\"%s\"",     node->key);
-    if (node->str_val) printf(" value=\"%s\"", node->str_val);
-    printf("\n");
+void print_ast(ASTNode *node, int depth, FILE *out) {
+    if (!node || !out) return;
+    for (int i = 0; i < depth; i++) fputs("  ", out);
+    fprintf(out, "[%s]", node_type_name(node->type));
+    if (node->key)     fprintf(out, " key=\"%s\"",     node->key);
+    if (node->str_val) fprintf(out, " value=\"%s\"", node->str_val);
+    fputc('\n', out);
     for (int i = 0; i < node->child_count; i++)
-        print_ast(node->children[i], depth + 1);
+        print_ast(node->children[i], depth + 1, out);
 }

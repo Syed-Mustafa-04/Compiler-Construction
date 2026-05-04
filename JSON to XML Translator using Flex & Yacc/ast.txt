@@ -1,0 +1,7 @@
+[OBJECT]
+  [PAIR] key="name"
+    [STRING] value="Müller"
+  [PAIR] key="emoji"
+    [STRING] value="☺"
+  [PAIR] key="city"
+    [STRING] value="Sølv"

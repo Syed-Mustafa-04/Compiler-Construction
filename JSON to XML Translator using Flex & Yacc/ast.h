@@ -22,6 +22,6 @@ typedef struct ASTNode {
 ASTNode *create_node(NodeType type);
 void add_child(ASTNode *parent, ASTNode *child);
 void free_ast(ASTNode *node);
-void print_ast(ASTNode *node, int depth);  /* bonus: AST printing */
+void print_ast(ASTNode *node, int depth, FILE *out);  /* bonus: AST printing */
 
 #endif
